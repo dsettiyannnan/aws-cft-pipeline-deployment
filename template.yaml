@@ -5,6 +5,7 @@ Parameters:
   ExistingLambdaRoleArn:
     Type: String
     Description: The full ARN of the existing IAM role (e.g., arn:aws:iam::123456789012:role/MyRole)
+    Default: arn:aws:iam::037776138262:role/my-lambda-exec-role
 
 Resources:
   # 1. The Sample Node.js Lambda Function
