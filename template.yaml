@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create and invoke a Node.js Lambda function using an existing role.
+
+Parameters:
+  ExistingLambdaRoleArn:
+    Type: String
+    Description: The full ARN of the existing IAM role (e.g., arn:aws:iam::123456789012:role/MyRole)
+
+Resources:
+  # 1. The Sample Node.js Lambda Function
+  SampleFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: SampleFunctionForCFT
+      Runtime: nodejs20.x
+      # CORRECTED: Use !Ref to pass the parameter string directly. 
+      # Do not use AWS::IAM::Role resource for an existing role.
+      Role: !Ref ExistingLambdaRoleArn 
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          'use strict';
+          const https = require("https");
+          exports.handler = async (event, context) => {
+            console.log("Function invoked successfully!");
+            const responseData = { Message: "Hello from Lambda!" };
+            const physicalResourceId = "SampleLambdaExecutionResource";
+
+            const sendResponse = async (status) => {
+              const responseBody = JSON.stringify({
+                Status: status,
+                Reason: "Details in CloudWatch: " + context.logStreamName,
+                PhysicalResourceId: physicalResourceId,
+                StackId: event.StackId,
+                RequestId: event.RequestId,
+                LogicalResourceId: event.LogicalResourceId,
+                Data: responseData
+              });
+
+              const parsedUrl = new URL(event.ResponseURL);
+              const options = {
+                hostname: parsedUrl.hostname,
+                port: 443,
+                path: parsedUrl.pathname + parsedUrl.search,
+                method: "PUT",
+                headers: { "content-length": responseBody.length }
+              };
+
+              return new Promise((resolve) => {
+                const req = https.request(options, resolve);
+                req.write(responseBody);
+                req.end();
+              });
+            };
+
+            try {
+              await sendResponse("SUCCESS");
+            } catch (err) {
+              await sendResponse("FAILED");
+            }
+          };
+      Timeout: 30
+
+  # 2. Custom Resource to execute the Lambda
+  InvokeSampleLambdaCustomResource:
+    Type: Custom::InvokeSampleLambda
+    Properties:
+      ServiceToken: !GetAtt SampleFunction.Arn
+      Trigger: !GetAtt SampleFunction.Arn
+
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of the created Lambda Function
+    Value: !GetAtt SampleFunction.Arn
