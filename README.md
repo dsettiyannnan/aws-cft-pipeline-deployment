@@ -1,3 +1,4 @@
+```mermaid
 flowchart LR
     Dev[Developer Pushes Code] -->|git push| GitHub[GitHub Repository]
 
@@ -25,3 +26,4 @@ flowchart LR
     GitHub --> DEV
     GitHub --> STAGE
     GitHub --> PROD
+```
