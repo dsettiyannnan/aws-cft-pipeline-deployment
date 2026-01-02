@@ -23,6 +23,11 @@ jobs:
           role-to-assume: arn:aws:iam::037776138262:role/github-oidc-assume-role
           aws-region: us-east-1
 
+      - name: Lint CloudFormation template
+        run: |
+            pip install cfn-lint
+            cfn-lint template.yaml
+
       - name: Start CodePipeline
         run: |
           aws codepipeline start-pipeline-execution \
